@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <iostream>
+#include <random>
 class Chip8
 {
     public:
