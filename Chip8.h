@@ -12,7 +12,10 @@ class Chip8
         uint16_t pc;           // program counter
         uint16_t stack[16];    // stack for storing addresses when calling functions
         uint8_t sp;            // stack pointer
+        uint8_t delay_timer;   // delay timer
+        uint8_t sound_timer;   // sound timer
 
         void emulate_cycle();
         void init();
+        uint8_t get_key();
 };
