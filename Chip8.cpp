@@ -4,7 +4,7 @@ void Chip8::init()
 {
     FILE *pFile = fopen("invaders.c8", "rb");
     char *buffer;
-    // Check file size
+    // get the file size
     fseek(pFile, 0, SEEK_END);
     long lsize = ftell(pFile);
     rewind(pFile);
@@ -42,6 +42,7 @@ void Chip8::init()
 
 void Chip8::emulate_cycle()
 {
+    // fetch the instrucion itself -> what does it do?
     opcode = memory[pc] << 8 | memory[pc + 1]; // combine two bytes from memory for the opcode
                                                //  memory[pc]   = 0xA2 = 0b10100010
                                                //  memory[pc+1] = 0xF0 = 0b11110000
@@ -52,6 +53,9 @@ void Chip8::emulate_cycle()
                                                //  0b0000000011110000 (0x00F0)
                                                //= 0b1010001011110000 (0xA2F0) -> combined opcode
 
+
+
+    // fetch the values of the instruction -> for example which register do we need?
     u_int8_t X = (opcode & 0x0F00) >> 8;
     u_int8_t Y = (opcode & 0x00F0) >> 4;
     u_int8_t F = 0xF; // carry register for setting the carry flag
@@ -66,6 +70,8 @@ void Chip8::emulate_cycle()
         printf("V[%0x]:0x%04x ", i, V[i]);
     }
 
+
+    // decode the opcode -> each instruction has its own opcode
     // extract the first 4 bits of the opcode because they determine the instruction
     switch (opcode & 0xF000)
     {
@@ -75,6 +81,7 @@ void Chip8::emulate_cycle()
         case 0x0000:
             // 0x00E0
             // clears the screen
+            // execute the instruction -> fetch-fetch-decode-execute-cycle
             for (int i = 0; i < 64 * 32; i++)
             {
                 video[i] = 0;
