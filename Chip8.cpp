@@ -1,8 +1,10 @@
 #include "Chip8.h"
+#include <cstdint>
+#include <cstdio>
 
 void Chip8::init()
 {
-    FILE *pFile = fopen("invaders.c8", "rb");
+    FILE *pFile = fopen("ibm.ch8", "rb");
     char *buffer;
     // get the file size
     fseek(pFile, 0, SEEK_END);
@@ -34,45 +36,52 @@ void Chip8::init()
         emulate_cycle();
     }
     */
-    for (int i = 0; i < 100; i++)
+    /*
+    for (int i = 0; i < 1; i++)
     {
         emulate_cycle();
     }
+    */
 }
 
 void Chip8::emulate_cycle()
 {
+    // reset the draw_flag every time to 0 at the beginning of the emulate_cycle
+    draw_flag = 0;
     // fetch the instrucion itself -> what does it do?
-    opcode = memory[pc] << 8 | memory[pc + 1]; // combine two bytes from memory for the opcode
-                                               //  memory[pc]   = 0xA2 = 0b10100010
-                                               //  memory[pc+1] = 0xF0 = 0b11110000
-                                               //  "make place" for the second byte by bitshifting the first one 8 bits to the right
-                                               //  0xA2 << 8 = 0xA200  = 0b1010001000000000
-                                               //  use the bitwise OR "|" operator to combine the 2 bytes
-                                               //  0b1010001000000000 (0xA200) |
-                                               //  0b0000000011110000 (0x00F0)
-                                               //= 0b1010001011110000 (0xA2F0) -> combined opcode
+    opcode =
+        memory[pc] << 8 |
+        memory[pc + 1]; // combine two bytes from memory for the opcode
+                        //  memory[pc]   = 0xA2 = 0b10100010
+                        //  memory[pc+1] = 0xF0 = 0b11110000
+                        //  "make place" for the second byte by bitshifting the
+                        //  first one 8 bits to the right 0xA2 << 8 = 0xA200  =
+                        //  0b1010001000000000 use the bitwise OR "|" operator to
+                        //  combine the 2 bytes 0b1010001000000000 (0xA200) |
+                        //  0b0000000011110000 (0x00F0)
+                        //= 0b1010001011110000 (0xA2F0) -> combined opcode
 
-
-
-    // fetch the values of the instruction -> for example which register do we need?
+    // fetch the values of the instruction -> for example which register do we
+    // need?
     u_int8_t X = (opcode & 0x0F00) >> 8;
     u_int8_t Y = (opcode & 0x00F0) >> 4;
     u_int8_t F = 0xF; // carry register for setting the carry flag
 
     uint8_t NN = opcode & 0x00FF;
+    uint8_t N = opcode & 0x000F;
     uint16_t NNN = opcode & 0x0FFF;
 
     // print the address of the current instruction
-    printf("addr:0x%04x op:0x%04x Vf:0x%04x ", pc, opcode, V[X], V[Y], V[F]);
-    for (int i = 0; i < 16; i++)
+    printf("pc:0x%04x  Vf:0x%04x ", pc, V[F]);
+    for (int i = 0; i < 15; i++)
     {
         printf("V[%0x]:0x%04x ", i, V[i]);
     }
-
+    printf("I:0x%04x op:0x%04x", I, opcode);
 
     // decode the opcode -> each instruction has its own opcode
-    // extract the first 4 bits of the opcode because they determine the instruction
+    // extract the first 4 bits of the opcode because they determine the
+    // instruction
     switch (opcode & 0xF000)
     {
     case 0x0000:
@@ -82,6 +91,7 @@ void Chip8::emulate_cycle()
             // 0x00E0
             // clears the screen
             // execute the instruction -> fetch-fetch-decode-execute-cycle
+            draw_flag = 1;
             for (int i = 0; i < 64 * 32; i++)
             {
                 video[i] = 0;
@@ -183,14 +193,21 @@ void Chip8::emulate_cycle()
         case 0x0001:
             // 0x8XY1
             // Sets VX to VX or VY. (bitwise OR operation)
-            V[X] | V[Y];
+            V[X] = V[X] | V[Y];
             pc += 2;
             break;
 
         case 0x0002:
             // 0x8XY2
             // Sets VX to VX and VY. (bitwise AND operation)
-            V[X] & V[Y];
+            V[X] = V[X] & V[Y];
+            pc += 2;
+            break;
+        
+        case 0x0003:
+            // 0x8XY3
+            // Sets VX to VX xor VY (bitwise XOR operation)
+            V[X] = V[X] ^ V[Y];
             pc += 2;
             break;
 
@@ -205,7 +222,8 @@ void Chip8::emulate_cycle()
             // {
             //     V[F] = 1;
             // }
-            if (V[X] + V[Y] > 0xFF)
+            // ! if the code does not work switch both of the assignments of V[F]
+            if (V[Y] > 0xFF - V[X])
             {
                 V[F] = 1;
             }
@@ -221,15 +239,17 @@ void Chip8::emulate_cycle()
             // 0x8XY5
             // subtracts VY from VX -> VX -= VY
             // if the difference of register x and y is less than 0
-            // we set the carry flag to 1 to let the system know
+            // we set the carry flag to 0 to let the system know
             // reason: registers are only 8 bits big -> numbers are unsigned and 8 bit -> range from 0 to 255
+            // VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there is not
+            // ! if the code does not work switch both of the assignments of V[F]
             if (V[Y] > V[X])
             {
-                V[F] = 1;
+                V[F] = 0;
             }
             else
             {
-                V[F] = 0;
+                V[F] = 1;
             }
             V[X] -= V[Y];
             pc += 2;
@@ -249,14 +269,25 @@ void Chip8::emulate_cycle()
         }
 
         case 0x0007:
-            // 0x8XY6
-            // TODO: Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there is not
+            // 0x8XY7
+            // Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there is not
+            // ! if the code does not work switch both of the assignments of V[F]
+
+            if (V[X] > V[Y])
+            {
+                V[F] = 0;
+            }
+            else
+            {
+                V[F] = 1;
+            }
+            V[X] = V[Y] - V[X];
             pc += 2;
             break;
 
         case 0x000E:
         {
-            // 0x8XY6
+            // 0x8XYE
             // Stores the most significant bit of VX in VF and then shifts VX to the left by 1
             // the most significant bit is the first digit of the binary number
             // -> "extract it" with the logic AND operator
@@ -307,10 +338,57 @@ void Chip8::emulate_cycle()
     }
 
     case 0xD000:
+    {
         // 0xDXYN
-        // TODO: Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels
+        // Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels
+        // reset the flag register -> is needed for sprite collision
+        V[F] = 0;
+        draw_flag = 1;
+
+        // loop through every row/byte of the sprite data -> sprite has N rows
+        for (int32_t i = 0; i < N; i++)
+        {
+            // sprite data begins at address stored in I register
+            uint8_t sprite = memory[I + i];
+            // the row wraps around the screen -> if the sprite goes off screen it appears back at the top of the screen
+            // mod dividing by screen height solves the problem
+            // e.g if position is 33 (off screen) the row is set to 33%32=1
+            int32_t row = (V[Y] + i) % 32;
+
+            // loop through every single bit in the byte of sprite data
+            // every single column of the sprite -> every sprite is 8 bits wide
+            for (int32_t j = 0; j < 8; j++)
+            {
+                // the same wrapping techniques as seen before
+                int32_t col = (V[X] + j) % 64;
+                uint32_t offset = row * 64 + col; // convert 2d array indices into 1d array
+                // the most significant bit determines if a pixel is drawn or not
+                // filter out the bit with a logic AND operation
+                uint8_t MSB = (sprite & 0x80) >> 7;
+
+                // if the MSB is 1 we draw a pixel at the given row and column
+                if (MSB == 1)
+                {
+                    if (video[offset] == 1)
+                    {
+                        // if a pixel is already present at the given location we set the V[F] register to 1 and turn of the pixel
+                        // -> this is used for collision in some applications
+                        V[F] = 1;
+                        video[offset] = 0;
+                    }
+                    else
+                    {
+                        video[offset] = 1;
+                    }
+                }
+
+                // shift the sprite data 1 bit to the left to get the next bit of information whether to draw somehting or not
+                sprite <<= 1;
+            }
+        }
         pc += 2;
         break;
+    }
 
     case 0xE000:
         switch (opcode & 0x000F)
@@ -355,7 +433,7 @@ void Chip8::emulate_cycle()
 
         case 0x000A:
             // 0xFX0A
-            // TODO: A key press is awaited, and then stored in VX (blocking operation, all instruction halted until next key event)
+            // TODO: A key press is awaited, and then stored in VX (blocking operation, all instructions halted until next key event)
             pc += 2;
             break;
 

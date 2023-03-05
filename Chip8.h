@@ -14,6 +14,7 @@ class Chip8
         uint8_t sp;            // stack pointer
         uint8_t delay_timer;   // delay timer
         uint8_t sound_timer;   // sound timer
+        uint8_t draw_flag;     // boolean flag if something needs to be redrawn
 
         void emulate_cycle();
         void init();
