@@ -1,10 +1,4 @@
 #include "Chip8.h"
-#include <SFML/Graphics.hpp>
-#include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/RectangleShape.hpp>
-#include <SFML/System/Vector2.hpp>
-#include <SFML/Window/Event.hpp>
-#include <SFML/Window/VideoMode.hpp>
 #include <fstream>
 #include <iostream>
 using namespace std;
@@ -16,11 +10,6 @@ const int screen_height = 32 * scale;
 
 void print_video_array()
 {
-  for (int i = 0; i < 100; i++)
-  {
-    chip8.emulate_cycle();
-  }
-
   for (int i = 0; i < 64 * 32; i++)
   {
     if (i % 64 == 0 && i != 0)
@@ -30,6 +19,7 @@ void print_video_array()
     printf("%d", chip8.video[i]);
   }
 }
+
 int main()
 {
   sf::RenderWindow window(sf::VideoMode(screen_width, screen_height), "chip8emu");
@@ -46,8 +36,6 @@ int main()
     pixels[i].setPosition(0, 0);
   }
 
-  // print_video_array();
-
   while (window.isOpen())
   {
     sf::Event event;
@@ -61,28 +49,37 @@ int main()
 
     // update variables here
     chip8.emulate_cycle();
+    // print_video_array();
     if (chip8.draw_flag == 1)
     {
       for (int i = 0; i < 64 * 32; i++)
       {
+        int x_coordinate = i % 64;
+        int y_coordinate = i / 64;
+        sf::RectangleShape pixel(
+            sf::Vector2f(scale, scale));
+        pixel.setPosition(x_coordinate * scale,
+                          y_coordinate * scale);
         if (chip8.video[i] == 1)
         {
-          int x_coordinate = i % 64;
-          int y_coordinate = i / 64;
-          sf::RectangleShape pixel(
-              sf::Vector2f(scale, scale));
-          pixel.setPosition(x_coordinate * scale,
-                            y_coordinate * scale);
-          pixels[i] = pixel;
+          pixel.setFillColor(sf::Color::White);
         }
+        else
+        {
+          pixel.setFillColor(sf::Color::Black);
+        }
+        pixels[i] = pixel;
       }
 
-      window.clear(sf::Color::Black);
-      for (int i = 0; i < 64 * 32; i++)
+      if (chip8.draw_flag == 1)
       {
-        window.draw(pixels[i]);
+        window.clear(sf::Color::Black);
+        for (int i = 0; i < 64 * 32; i++)
+        {
+          window.draw(pixels[i]);
+        }
+        window.display();
       }
-      window.display();
     }
   }
 
