@@ -2,6 +2,10 @@
 #include <iostream>
 #include <random>
 #include <unistd.h>
+#include <cstdint>
+#include <cstdio>
+#include <string.h>
+#include <time.h>
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
@@ -22,8 +26,11 @@ public:
     uint8_t delay_timer;    // delay timer
     uint8_t sound_timer;    // sound timer
     uint8_t draw_flag;      // boolean flag if something needs to be redrawn
+    uint32_t cycle_count;
+    //uint8_t clear_flag;     // boolean flag if screen needs to be cleared
     uint8_t key;            // hex value ranging from 0 to F for the keyboard
 
+    void print_registers();
     void emulate_cycle();
     void init();
     uint8_t get_key();
