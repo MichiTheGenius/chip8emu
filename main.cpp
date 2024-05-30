@@ -1,6 +1,11 @@
 #include "Chip8.h"
 #include <fstream>
 #include <iostream>
+
+#define COLOR_FG sf::Color::White
+#define COLOR_BG sf::Color::Black
+
+#define DELAY 2000
 using namespace std;
 
 Chip8 chip8;
@@ -33,21 +38,23 @@ void run_test_cycles(int n)
 int main()
 {
 	sf::RenderWindow window(sf::VideoMode(screen_width, screen_height), "chip8emu");
-	window.setFramerateLimit(60);
+	//window.setFramerateLimit(60);
 
 	chip8.init();
-	//run_test_cycles(500);
+	// run_test_cycles(500);
 
 	// create an array that stores all of the pixels of the chip8
 	sf::RectangleShape pixels[64 * 32];
+
 	for (int i = 0; i < 64 * 32; i++)
 	{
 		// initialize all of the pixels to zero
-		pixels[i] = sf::RectangleShape(sf::Vector2f(0, 0));
+		pixels[i] = sf::RectangleShape(sf::Vector2f(scale, scale));
 		pixels[i].setPosition(0, 0);
+		pixels[i].setFillColor(COLOR_BG);
 	}
 
-	//for(int i = 0; i<2050; i++)
+	// for(int i = 0; i<2050; i++)
 	while (window.isOpen())
 	{
 		sf::Event event;
@@ -60,35 +67,30 @@ int main()
 		}
 
 		// update variables here
+		chip8.get_keys();
 		chip8.emulate_cycle();
-		// print_video_array();
 
 		if (chip8.draw_flag == 1)
 		{
-			window.clear(sf::Color::Black);
+			window.clear(COLOR_BG);
 			for (int i = 0; i < 64 * 32; i++)
 			{
 				int x_coordinate = i % 64;
 				int y_coordinate = i / 64;
-				sf::RectangleShape pixel(
-					sf::Vector2f(scale, scale));
-				pixel.setPosition(x_coordinate * scale,
-								  y_coordinate * scale);
+				pixels[i].setPosition(x_coordinate * scale, y_coordinate * scale);
 				if (chip8.video[i] == 1)
 				{
-					pixel.setFillColor(sf::Color::White);
+					pixels[i].setFillColor(COLOR_FG);
 				}
 				else
 				{
-					pixel.setFillColor(sf::Color::Black);
+					pixels[i].setFillColor(COLOR_BG);
 				}
-				pixels[i] = pixel;
 				window.draw(pixels[i]);
 			}
 			window.display();
 		}
-		// emulate clock speed of 500Hz
-		// sleep every 1/500 seconds = 2000 microseconds
+		usleep(DELAY);
 	}
 
 	return 0;

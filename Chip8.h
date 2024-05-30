@@ -12,6 +12,11 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/VideoMode.hpp>
+
+#define ROM "roms/brick.ch8"
+#define CLOCK_SPEED 600 // Instructions per second
+#define CPU_CYCLES_PER_TIMER_CYCLE CLOCK_SPEED / 60
+
 class Chip8
 {
 public:
@@ -26,12 +31,14 @@ public:
     uint8_t delay_timer;    // delay timer
     uint8_t sound_timer;    // sound timer
     uint8_t draw_flag;      // boolean flag if something needs to be redrawn
-    uint32_t cycle_count;
     //uint8_t clear_flag;     // boolean flag if screen needs to be cleared
-    uint8_t key;            // hex value ranging from 0 to F for the keyboard
+    uint8_t keypad[16];       // hex keypad with 16 keys
+    sf::Keyboard::Key keybinds[16]; 
+    uint8_t cycles;
 
     void print_registers();
+    void print_keys();
     void emulate_cycle();
     void init();
-    uint8_t get_key();
+    void get_keys();
 };

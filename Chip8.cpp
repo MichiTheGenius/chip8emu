@@ -1,8 +1,5 @@
 #include "Chip8.h"
 
-#define ROM "roms/c8_test.ch8"
-#define CLOCK_RATE 1 // Instructions per millisecond
-
 void Chip8::print_registers()
 {
 	for (int i = 0; i < 16; i++)
@@ -11,8 +8,17 @@ void Chip8::print_registers()
 	}
 }
 
+void Chip8::print_keys()
+{
+	for (int i = 0; i < 16; i++)
+	{
+		printf("key[%d]=%d ", i, keypad[i]);
+	}
+}
+
 void Chip8::init()
 {
+	// READ FILE
 	FILE *pFile = fopen(ROM, "rb");
 	char *buffer;
 	// get the file size
@@ -25,19 +31,41 @@ void Chip8::init()
 	// Copy the file into the buffer
 	fread(buffer, 1, lsize, pFile);
 
+	// INITIALIZE VALUES WITH 0
 	pc = 0x200;
 	opcode = 0;
 	I = 0;
 	sp = 0;
 	delay_timer = 0;
 	draw_flag = 0;
-	cycle_count = 0;
+	cycles = 0;
 	// clear_flag = 0;
-	key = 0xF0; // F0 means no key pressed
 	for (int i = 0; i < 16; i++)
 	{
 		V[i] = 0;
+		keypad[i] = 0;
 	}
+
+	// SET KEYBINDS FOR GERMAN KEYBOARD
+	keybinds[0x1] = sf::Keyboard::Num1;
+	keybinds[0x2] = sf::Keyboard::Num2;
+	keybinds[0x3] = sf::Keyboard::Num3;
+	keybinds[0xC] = sf::Keyboard::Num4;
+
+	keybinds[0x4] = sf::Keyboard::Q;
+	keybinds[0x5] = sf::Keyboard::W;
+	keybinds[0x6] = sf::Keyboard::E;
+	keybinds[0xD] = sf::Keyboard::R;
+
+	keybinds[0x7] = sf::Keyboard::A;
+	keybinds[0x8] = sf::Keyboard::S;
+	keybinds[0x9] = sf::Keyboard::D;
+	keybinds[0xE] = sf::Keyboard::F;
+
+	keybinds[0xA] = sf::Keyboard::Y;
+	keybinds[0x0] = sf::Keyboard::X;
+	keybinds[0xB] = sf::Keyboard::C;
+	keybinds[0xF] = sf::Keyboard::V;
 
 	// setup characters for the font reaching from 0 to F
 	// each character is 5 bytes long
@@ -161,7 +189,7 @@ void Chip8::init()
 		memory[i + 512] = buffer[i];
 	}
 
-	memory[0x1FF] = 2; // modify memory to select SUPER-CHIP in the menu directly
+	// memory[0x1FF] = 2; // modify memory to select SUPER-CHIP in the menu directly
 
 	// Close file, free buffer
 	fclose(pFile);
@@ -170,8 +198,8 @@ void Chip8::init()
 
 void Chip8::emulate_cycle()
 {
+	int counter = 0; // counter for FX0A instruction
 	// reset the draw_flag every time to 0 at the beginning of the emulate_cycle
-	key = get_key(); // get the pressed key from the user; 0xF0 means no key pressed
 	// fetch the instrucion itself -> what does it do?
 	opcode =
 		memory[pc] << 8 |
@@ -196,14 +224,15 @@ void Chip8::emulate_cycle()
 
 	// print the address of the current instruction
 	printf("pc:0x%04x ", pc);
-	// print_registers();
+	print_registers();
 	printf("I:0x%04x ", I, opcode);
 	printf("op:0x%04x ", opcode);
-	print_registers();
 	printf("dt:%d ", delay_timer);
-	//printf("cycle_count:%d ", cycle_count);
+	printf("cyc:%d ", cycles);
+	// printf("cycle_count:%d ", cycle_count);
 	// printf("clear:%d ", clear_flag);
-	//printf("draw:%d ", draw_flag);
+	//  printf("draw:%d ", draw_flag);
+	// print_keys();
 	printf("\n");
 	// clear_flag = 0;
 	draw_flag = 0;
@@ -215,9 +244,11 @@ void Chip8::emulate_cycle()
 	switch (opcode & 0xF000)
 	{
 	case 0x0000:
-		switch (opcode & 0x000F)
+		// switch (opcode & 0x000F)
+		switch (NNN)
 		{
-		case 0x0000:
+		// case 0x0000:
+		case 0x00E0:
 			// 0x00E0
 			// clears the screen
 			// execute the instruction -> fetch-fetch-decode-execute-cycle
@@ -231,7 +262,8 @@ void Chip8::emulate_cycle()
 			pc += 2;
 			break;
 
-		case 0x000E:
+		// case 0x000E:
+		case 0x00EE:
 			// 0x00EE
 			// Returns from a subroutine
 			// pop the last address from the stack
@@ -528,7 +560,7 @@ void Chip8::emulate_cycle()
 		case 0x000E:
 			// 0xEX9E
 			// Skips the next instruction if the key stored in VX is pressed (usually the next instruction is a jump to skip a code block)
-			if (key == V[X])
+			if (keypad[V[X]] == 1)
 			{
 				pc += 4;
 			}
@@ -541,7 +573,7 @@ void Chip8::emulate_cycle()
 		case 0x0001:
 			// 0xEXA1
 			// Skips the next instruction if the key stored in VX is not pressed (usually the next instruction is a jump to skip a code block)
-			if (key != V[X])
+			if (keypad[V[X]] == 0)
 			{
 				pc += 4;
 			}
@@ -568,12 +600,15 @@ void Chip8::emulate_cycle()
 		case 0x000A:
 			// 0xFX0A
 			//  A key press is awaited, and then stored in VX (blocking operation, all instructions halted until next key event)
-			while (key == 0xF0)
+			for (int i = 0; i < 16; i++)
 			{
-				key = get_key();
-			} // wait by doing nothing
-			V[X] == key;
-			pc += 2;
+				if (keypad[i] == 1)
+				{
+					V[X] == keypad[counter];
+					pc += 2;
+					break;
+				}
+			}
 			break;
 
 		case 0x0005:
@@ -648,84 +683,38 @@ void Chip8::emulate_cycle()
 		}
 		break;
 	}
-	// decrement the delay timer every 17 cycles
-	// -> timer runs at 60Hz = 1/60 seconds = 17 milliseconds
-	// after 17 cycles, 17 milliseconds have passed -> decrement delay timer
-	if (cycle_count == CLOCK_RATE * 17)
+	if (delay_timer > 0)
 	{
-		cycle_count = 0;
-		if (delay_timer > 0)
-			delay_timer--;
+		delay_timer--;
 	}
-	cycle_count++;
+	if(sound_timer > 0)
+	{
+		// TODO implement sound with SFML
+		sound_timer--;
+		printf("BEEP BEEP!!!\n");
+	}
+	// cycles += 1;
+	// if (cycles == CPU_CYCLES_PER_TIMER_CYCLE)
+	//{
+	//	cycles = 0;
+	//	if (delay_timer > 0)
+	//	{
+	//		delay_timer--;
+	//	}
+	// }
 }
 
-uint8_t Chip8::get_key()
+void Chip8::get_keys()
 {
-
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))
+	for (int i = 0; i < 16; i++)
 	{
-		return 0x1;
+		if (sf::Keyboard::isKeyPressed(keybinds[i]))
+		{
+			keypad[i] = 1;
+		}
+		else
+		{
+			keypad[i] = 0;
+		}
 	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))
-	{
-		return 0x2;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num3))
-	{
-		return 0x3;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num4))
-	{
-		return 0xC;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-	{
-		return 0x4;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-	{
-		return 0x5;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
-	{
-		return 0x6;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
-	{
-		return 0xD;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-	{
-		return 0x7;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-	{
-		return 0x8;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-	{
-		return 0x9;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::F))
-	{
-		return 0xE;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Y))
-	{
-		return 0xA;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::X))
-	{
-		return 0x0;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::C))
-	{
-		return 0xB;
-	}
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::V))
-	{
-		return 0xF;
-	}
-	return 0xF0;
 }
