@@ -13,7 +13,6 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/VideoMode.hpp>
 
-#define ROM "roms/brick.ch8"
 #define CLOCK_SPEED 600 // Instructions per second
 #define CPU_CYCLES_PER_TIMER_CYCLE CLOCK_SPEED / 60
 
@@ -39,6 +38,6 @@ public:
     void print_registers();
     void print_keys();
     void emulate_cycle();
-    void init();
+    void init(char const* ROM);
     void get_keys();
 };

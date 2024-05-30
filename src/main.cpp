@@ -1,4 +1,4 @@
-#include "Chip8.h"
+#include "chip8.h"
 #include <fstream>
 #include <iostream>
 
@@ -35,12 +35,19 @@ void run_test_cycles(int n)
 	print_video_array();
 }
 
-int main()
+int main(int argc, char const *argv[])
 {
+	if (argc < 2)
+	{
+		printf("wrong usage! exiting...\n");
+		printf("usage: ./emu.x <ROM>\n");
+		return 1;
+	}
 	sf::RenderWindow window(sf::VideoMode(screen_width, screen_height), "chip8emu");
-	//window.setFramerateLimit(60);
+	// window.setFramerateLimit(60);
 
-	chip8.init();
+	char const *ROM = argv[1];
+	chip8.init(ROM);
 	// run_test_cycles(500);
 
 	// create an array that stores all of the pixels of the chip8

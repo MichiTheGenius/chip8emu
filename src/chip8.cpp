@@ -1,4 +1,4 @@
-#include "Chip8.h"
+#include "chip8.h"
 
 void Chip8::print_registers()
 {
@@ -16,7 +16,7 @@ void Chip8::print_keys()
 	}
 }
 
-void Chip8::init()
+void Chip8::init(char const* ROM)
 {
 	// READ FILE
 	FILE *pFile = fopen(ROM, "rb");
