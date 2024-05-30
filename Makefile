@@ -4,13 +4,12 @@ emu.x: build/main.o build/chip8.o
 
 # compile the source code files without linking -> create object files
 build/main.o: src/main.cpp src/chip8.h
+	@mkdir -p build
 	g++ -c src/main.cpp -o build/main.o
 
 build/chip8.o: src/chip8.cpp src/chip8.h
+	@mkdir -p build
 	g++ -c src/chip8.cpp -o build/chip8.o
-
-exec:
-	build/emu.x
 
 clean:
 	rm -rf build/*
