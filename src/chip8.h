@@ -12,9 +12,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/VideoMode.hpp>
-
-#define CLOCK_SPEED 600 // Instructions per second
-#define CPU_CYCLES_PER_TIMER_CYCLE CLOCK_SPEED / 60
+#include <SFML/Audio.hpp>
 
 class Chip8
 {
@@ -33,11 +31,15 @@ public:
     //uint8_t clear_flag;     // boolean flag if screen needs to be cleared
     uint8_t keypad[16];       // hex keypad with 16 keys
     sf::Keyboard::Key keybinds[16]; 
-    uint8_t cycles;
+	sf::SoundBuffer sound_buffer;
+	sf::Sound sound;
 
     void print_registers();
     void print_keys();
     void emulate_cycle();
     void init(char const* ROM);
     void get_keys();
+    void setup_keybinds();
+    void setup_font();
+    void play_sound();
 };
