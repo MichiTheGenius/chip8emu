@@ -2,17 +2,22 @@
 #include <fstream>
 #include <iostream>
 
+// background and foreground colors of screen
 #define COLOR_FG sf::Color::White
 #define COLOR_BG sf::Color::Black
 
+// delay in microseconds to emulate chip8 clock speed
 #define DELAY 2000
 using namespace std;
 
-Chip8 chip8;
-const int scale = 10;
-const int screen_width = 64 * scale;
-const int screen_height = 32 * scale;
+// display scale factor to scale up screen size
+#define SCALE 10
+#define SCREEN_WIDTH 64 * SCALE
+#define SCREEN_HEIGHT 32 * SCALE
 
+Chip8 chip8;
+
+// print each line of the video array for debugging purposes
 void print_video_array()
 {
 	for (int i = 0; i < 64 * 32; i++)
@@ -43,12 +48,12 @@ int main(int argc, char const *argv[])
 		printf("usage: ./emu.x <ROM>\n");
 		return 1;
 	}
-	sf::RenderWindow window(sf::VideoMode(screen_width, screen_height), "chip8emu");
-	// window.setFramerateLimit(60);
+	sf::RenderWindow window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "chip8emu");
 
+	// get name of ROM from first command line argument
 	char const *ROM = argv[1];
+	// initialize chip8
 	chip8.init(ROM);
-	// run_test_cycles(500);
 
 	// create an array that stores all of the pixels of the chip8
 	sf::RectangleShape pixels[64 * 32];
@@ -56,7 +61,7 @@ int main(int argc, char const *argv[])
 	for (int i = 0; i < 64 * 32; i++)
 	{
 		// initialize all of the pixels to zero
-		pixels[i] = sf::RectangleShape(sf::Vector2f(scale, scale));
+		pixels[i] = sf::RectangleShape(sf::Vector2f(SCALE, SCALE));
 		pixels[i].setPosition(0, 0);
 		pixels[i].setFillColor(COLOR_BG);
 	}
@@ -74,8 +79,8 @@ int main(int argc, char const *argv[])
 		}
 
 		// update variables here
-		chip8.get_keys();
 		chip8.emulate_cycle();
+		chip8.get_keys();
 
 		if (chip8.draw_flag == 1)
 		{
@@ -84,7 +89,7 @@ int main(int argc, char const *argv[])
 			{
 				int x_coordinate = i % 64;
 				int y_coordinate = i / 64;
-				pixels[i].setPosition(x_coordinate * scale, y_coordinate * scale);
+				pixels[i].setPosition(x_coordinate * SCALE, y_coordinate * SCALE);
 				if (chip8.video[i] == 1)
 				{
 					pixels[i].setFillColor(COLOR_FG);

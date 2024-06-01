@@ -16,37 +16,9 @@ void Chip8::print_keys()
 	}
 }
 
-void Chip8::init(char const* ROM)
+void Chip8::setup_keybinds()
 {
-	// READ FILE
-	FILE *pFile = fopen(ROM, "rb");
-	char *buffer;
-	// get the file size
-	fseek(pFile, 0, SEEK_END);
-	long lsize = ftell(pFile);
-	rewind(pFile);
-	printf("filesize: %d\n", lsize);
-	// Allocate memory to contain the whole file
-	buffer = (char *)malloc(sizeof(char) * lsize);
-	// Copy the file into the buffer
-	fread(buffer, 1, lsize, pFile);
-
-	// INITIALIZE VALUES WITH 0
-	pc = 0x200;
-	opcode = 0;
-	I = 0;
-	sp = 0;
-	delay_timer = 0;
-	draw_flag = 0;
-	cycles = 0;
-	// clear_flag = 0;
-	for (int i = 0; i < 16; i++)
-	{
-		V[i] = 0;
-		keypad[i] = 0;
-	}
-
-	// SET KEYBINDS FOR GERMAN KEYBOARD
+	// Set keybinds for German keyboard
 	keybinds[0x1] = sf::Keyboard::Num1;
 	keybinds[0x2] = sf::Keyboard::Num2;
 	keybinds[0x3] = sf::Keyboard::Num3;
@@ -66,122 +38,166 @@ void Chip8::init(char const* ROM)
 	keybinds[0x0] = sf::Keyboard::X;
 	keybinds[0xB] = sf::Keyboard::C;
 	keybinds[0xF] = sf::Keyboard::V;
+}
 
-	// setup characters for the font reaching from 0 to F
-	// each character is 5 bytes long
-	// [digit * sizeof_character + offset]
+void Chip8::setup_font()
+{
 
-	// '0'
-	memory[0x0 * 5 + 0] = 0xF0;
-	memory[0x0 * 5 + 1] = 0x90;
-	memory[0x0 * 5 + 2] = 0x90;
-	memory[0x0 * 5 + 3] = 0x90;
-	memory[0x0 * 5 + 4] = 0xF0;
+	// array storing the font: each character is 5 bytes in size; 16 characters in total -> 16*5=80 bytes in total
+	uint8_t fontset[80] = {
+		// '0'
+		0xF0,
+		0x90,
+		0x90,
+		0x90,
+		0xF0,
 
-	// '1'
-	memory[0x1 * 5 + 0] = 0x20;
-	memory[0x1 * 5 + 1] = 0x60;
-	memory[0x1 * 5 + 2] = 0x20;
-	memory[0x1 * 5 + 3] = 0x20;
-	memory[0x1 * 5 + 4] = 0x70;
+		// '1'
+		0x20,
+		0x60,
+		0x20,
+		0x20,
+		0x70,
 
-	// '2'
-	memory[0x2 * 5 + 0] = 0xF0;
-	memory[0x2 * 5 + 1] = 0x10;
-	memory[0x2 * 5 + 2] = 0xF0;
-	memory[0x2 * 5 + 3] = 0x80;
-	memory[0x2 * 5 + 4] = 0xF0;
+		// '2'
+		0xF0,
+		0x10,
+		0xF0,
+		0x80,
+		0xF0,
 
-	// '3'
-	memory[0x3 * 5 + 0] = 0xF0;
-	memory[0x3 * 5 + 1] = 0x10;
-	memory[0x3 * 5 + 2] = 0xF0;
-	memory[0x3 * 5 + 3] = 0x10;
-	memory[0x3 * 5 + 4] = 0xF0;
+		// '3'
+		0xF0,
+		0x10,
+		0xF0,
+		0x10,
+		0xF0,
 
-	// '4'
-	memory[0x4 * 5 + 0] = 0x90;
-	memory[0x4 * 5 + 1] = 0x90;
-	memory[0x4 * 5 + 2] = 0xF0;
-	memory[0x4 * 5 + 3] = 0x10;
-	memory[0x4 * 5 + 4] = 0x10;
+		// '4'
+		0x90,
+		0x90,
+		0xF0,
+		0x10,
+		0x10,
 
-	// '5'
-	memory[0x5 * 5 + 0] = 0xF0;
-	memory[0x5 * 5 + 1] = 0x80;
-	memory[0x5 * 5 + 2] = 0xF0;
-	memory[0x5 * 5 + 3] = 0x10;
-	memory[0x5 * 5 + 4] = 0xF0;
+		// '5'
+		0xF0,
+		0x80,
+		0xF0,
+		0x10,
+		0xF0,
 
-	// '6'
-	memory[0x6 * 5 + 0] = 0xF0;
-	memory[0x6 * 5 + 1] = 0x80;
-	memory[0x6 * 5 + 2] = 0xF0;
-	memory[0x6 * 5 + 3] = 0x90;
-	memory[0x6 * 5 + 4] = 0xF0;
+		// '6'
+		0xF0,
+		0x80,
+		0xF0,
+		0x90,
+		0xF0,
 
-	// '7'
-	memory[0x7 * 5 + 0] = 0xF0;
-	memory[0x7 * 5 + 1] = 0x10;
-	memory[0x7 * 5 + 2] = 0x20;
-	memory[0x7 * 5 + 3] = 0x40;
-	memory[0x7 * 5 + 4] = 0x40;
+		// '7'
+		0xF0,
+		0x10,
+		0x20,
+		0x40,
+		0x40,
 
-	// '8'
-	memory[0x8 * 5 + 0] = 0xF0;
-	memory[0x8 * 5 + 1] = 0x90;
-	memory[0x8 * 5 + 2] = 0xF0;
-	memory[0x8 * 5 + 3] = 0x90;
-	memory[0x8 * 5 + 4] = 0xF0;
+		// '8'
+		0xF0,
+		0x90,
+		0xF0,
+		0x90,
+		0xF0,
 
-	// '9'
-	memory[0x9 * 5 + 0] = 0xF0;
-	memory[0x9 * 5 + 1] = 0x90;
-	memory[0x9 * 5 + 2] = 0xF0;
-	memory[0x9 * 5 + 3] = 0x10;
-	memory[0x9 * 5 + 4] = 0xF0;
+		// '9'
+		0xF0,
+		0x90,
+		0xF0,
+		0x10,
+		0xF0,
 
-	// 'A'
-	memory[0xA * 5 + 0] = 0xF0;
-	memory[0xA * 5 + 1] = 0x90;
-	memory[0xA * 5 + 2] = 0xF0;
-	memory[0xA * 5 + 3] = 0x90;
-	memory[0xA * 5 + 4] = 0x90;
+		// 'A'
+		0xF0,
+		0x90,
+		0xF0,
+		0x90,
+		0x90,
 
-	// 'B'
-	memory[0xB * 5 + 0] = 0xE0;
-	memory[0xB * 5 + 1] = 0x90;
-	memory[0xB * 5 + 2] = 0xE0;
-	memory[0xB * 5 + 3] = 0x90;
-	memory[0xB * 5 + 4] = 0xE0;
+		// 'B'
+		0xE0,
+		0x90,
+		0xE0,
+		0x90,
+		0xE0,
 
-	// 'C'
-	memory[0xC * 5 + 0] = 0xF0;
-	memory[0xC * 5 + 1] = 0x80;
-	memory[0xC * 5 + 2] = 0x80;
-	memory[0xC * 5 + 3] = 0x80;
-	memory[0xC * 5 + 4] = 0xF0;
+		// 'C'
+		0xF0,
+		0x80,
+		0x80,
+		0x80,
+		0xF0,
 
-	// 'D'
-	memory[0xD * 5 + 0] = 0xE0;
-	memory[0xD * 5 + 1] = 0x90;
-	memory[0xD * 5 + 2] = 0x90;
-	memory[0xD * 5 + 3] = 0x90;
-	memory[0xD * 5 + 4] = 0xE0;
+		// 'D'
+		0xE0,
+		0x90,
+		0x90,
+		0x90,
+		0xE0,
 
-	// 'E'
-	memory[0xE * 5 + 0] = 0xF0;
-	memory[0xE * 5 + 1] = 0x80;
-	memory[0xE * 5 + 2] = 0xF0;
-	memory[0xE * 5 + 3] = 0x80;
-	memory[0xE * 5 + 4] = 0xF0;
+		// 'E'
+		0xF0,
+		0x80,
+		0xF0,
+		0x80,
+		0xF0,
 
-	// 'F'
-	memory[0xF * 5 + 0] = 0xF0;
-	memory[0xF * 5 + 1] = 0x80;
-	memory[0xF * 5 + 2] = 0xF0;
-	memory[0xF * 5 + 3] = 0x80;
-	memory[0xF * 5 + 4] = 0x80;
+		// 'F'
+		0xF0,
+		0x80,
+		0xF0,
+		0x80,
+		0x80,
+	};
+
+	for (int i = 0; i < 80; i++)
+	{
+		memory[i] = fontset[i];
+	}
+}
+
+void Chip8::init(char const *ROM)
+{
+	// read ROM file
+	FILE *pFile = fopen(ROM, "rb");
+	char *buffer;
+	// get the file size
+	fseek(pFile, 0, SEEK_END);
+	long lsize = ftell(pFile);
+	rewind(pFile);
+	printf("filesize: %d\n", lsize);
+	// Allocate memory to contain the whole ROM
+	buffer = (char *)malloc(sizeof(char) * lsize);
+	// Copy the ROM into the buffer
+	fread(buffer, 1, lsize, pFile);
+
+	pc = 0x200; // program starts at memory position 0x200 -> space before is used for font
+	// Initialize values with 0
+	opcode = 0;
+	I = 0;
+	sp = 0;
+	delay_timer = 0;
+	draw_flag = 0;
+	// clear_flag = 0;
+	for (int i = 0; i < 16; i++)
+	{
+		V[i] = 0;
+		keypad[i] = 0;
+	}
+
+	setup_keybinds();
+	setup_font();
+	sound_buffer.loadFromFile("sound.wav");
+	sound.setBuffer(sound_buffer);
+	sound.setVolume(100);
 
 	// program reading begins at memory position 512 (0x200)
 	for (int i = 0; i < lsize; i++)
@@ -198,8 +214,6 @@ void Chip8::init(char const* ROM)
 
 void Chip8::emulate_cycle()
 {
-	int counter = 0; // counter for FX0A instruction
-	// reset the draw_flag every time to 0 at the beginning of the emulate_cycle
 	// fetch the instrucion itself -> what does it do?
 	opcode =
 		memory[pc] << 8 |
@@ -213,10 +227,11 @@ void Chip8::emulate_cycle()
 						//                       0b0000000011110000 (0x00F0)
 						//                     = 0b1010001011110000 (0xA2F0) -> combined opcode
 
-	// fetch the values of the instruction -> for example which register do we need?
-	u_int8_t X = (opcode & 0x0F00) >> 8;
-	u_int8_t Y = (opcode & 0x00F0) >> 4;
-	u_int8_t F = 0xF; // carry register for setting the carry flag
+	// fetch the values of the instruction -> for example which register is modified?
+	uint8_t instruction = (opcode & 0xF000) >> 12;
+	uint8_t X = (opcode & 0x0F00) >> 8;
+	uint8_t Y = (opcode & 0x00F0) >> 4;
+	uint8_t F = 0xF; // carry register for setting the carry flag
 
 	uint8_t NN = opcode & 0x00FF;
 	uint8_t N = opcode & 0x000F;
@@ -228,26 +243,19 @@ void Chip8::emulate_cycle()
 	printf("I:0x%04x ", I, opcode);
 	printf("op:0x%04x ", opcode);
 	printf("dt:%d ", delay_timer);
-	printf("cyc:%d ", cycles);
-	// printf("cycle_count:%d ", cycle_count);
-	// printf("clear:%d ", clear_flag);
-	//  printf("draw:%d ", draw_flag);
-	// print_keys();
 	printf("\n");
 	// clear_flag = 0;
+
+	// reset the draw_flag every time to 0 at the beginning of the emulate_cycle
 	draw_flag = 0;
-	// printf("key: %0x\n", key);
 
 	// decode the opcode -> each instruction has its own opcode
-	// extract the first 4 bits of the opcode because they determine the
-	// instruction
-	switch (opcode & 0xF000)
+	// extract the first 4 bits of the opcode because they determine the instruction
+	switch (instruction)
 	{
-	case 0x0000:
-		// switch (opcode & 0x000F)
+	case 0x0:
 		switch (NNN)
 		{
-		// case 0x0000:
 		case 0x00E0:
 			// 0x00E0
 			// clears the screen
@@ -262,7 +270,6 @@ void Chip8::emulate_cycle()
 			pc += 2;
 			break;
 
-		// case 0x000E:
 		case 0x00EE:
 			// 0x00EE
 			// Returns from a subroutine
@@ -275,13 +282,13 @@ void Chip8::emulate_cycle()
 		}
 		break;
 
-	case 0x1000:
+	case 0x1:
 		// 0x1NNN
 		// JMP NNN (address)
 		pc = NNN;
 		break;
 
-	case 0x2000:
+	case 0x2:
 		// 0x2NNN
 		// calls subroutine at address NNN
 		// store the current pc address on the stack for jumping back
@@ -292,7 +299,7 @@ void Chip8::emulate_cycle()
 		pc = NNN;
 		break;
 
-	case 0x3000:
+	case 0x3:
 		// 0x3XNN
 		// Skips the next instruction if VX equals NN
 		if (V[X] == NN)
@@ -305,7 +312,7 @@ void Chip8::emulate_cycle()
 		}
 		break;
 
-	case 0x4000:
+	case 0x4:
 		// 0x4XNN
 		// Skips the next instruction if VX does not equal NN
 		if (V[X] != NN)
@@ -318,7 +325,7 @@ void Chip8::emulate_cycle()
 		}
 		break;
 
-	case 0x5000:
+	case 0x5:
 		// 0x5XY0
 		// Skips the next instruction if VX equals VY
 		if (V[X] == V[Y])
@@ -331,32 +338,32 @@ void Chip8::emulate_cycle()
 		}
 		break;
 
-	case 0x6000:
+	case 0x6:
 		// 0x6XNN
 		// Sets VX to NN -> VX = NN
 		V[X] = NN;
 		pc += 2;
 		break;
 
-	case 0x7000:
+	case 0x7:
 		// 0x7XNN
 		// Adds NN to VX (carry flag is not changed)
 		V[X] += NN;
 		pc += 2;
 		break;
 
-	case 0x8000:
+	case 0x8:
 	{
-		switch (opcode & 0x000F)
+		switch (N)
 		{
-		case 0x0000:
+		case 0x0:
 			// 0x8XY0
 			// sets VX to value of VY -> VX = VY
 			V[X] = V[Y];
 			pc += 2;
 			break;
 
-		case 0x0001:
+		case 0x1:
 			// 0x8XY1
 			// Sets VX to VX OR VY. (bitwise OR operation)
 			V[X] = (V[X] | V[Y]);
@@ -364,7 +371,7 @@ void Chip8::emulate_cycle()
 			pc += 2;
 			break;
 
-		case 0x0002:
+		case 0x2:
 			// 0x8XY2
 			// Sets VX to VX AND VY. (bitwise AND operation)
 			V[X] = (V[X] & V[Y]);
@@ -372,7 +379,7 @@ void Chip8::emulate_cycle()
 			pc += 2;
 			break;
 
-		case 0x0003:
+		case 0x3:
 			// 0x8XY3
 			// Sets VX to VX XOR VY (bitwise XOR operation)
 			V[X] = (V[X] ^ V[Y]);
@@ -380,7 +387,7 @@ void Chip8::emulate_cycle()
 			pc += 2;
 			break;
 
-		case 0x0004:
+		case 0x4:
 			// 0x8XY4
 			// Adds VY to VX -> VX += VY
 			//
@@ -400,7 +407,7 @@ void Chip8::emulate_cycle()
 			pc += 2;
 			break;
 
-		case 0x0005:
+		case 0x5:
 			// 0x8XY5
 			// subtracts VY from VX -> VX -= VY
 			// if the difference of VX and VY is less than 0
@@ -420,7 +427,7 @@ void Chip8::emulate_cycle()
 			pc += 2;
 			break;
 
-		case 0x0006:
+		case 0x6:
 		{
 			// 0x8XY6
 			// Store the value of register VY shifted right one bit in register VX
@@ -433,7 +440,7 @@ void Chip8::emulate_cycle()
 			break;
 		}
 
-		case 0x0007:
+		case 0x7:
 			// 0x8XY7
 			// Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there is not
 
@@ -449,7 +456,7 @@ void Chip8::emulate_cycle()
 			pc += 2;
 			break;
 
-		case 0x000E:
+		case 0xE:
 		{
 			// 0x8XYE
 			// Store the value of register VY shifted left one bit in register VX
@@ -465,7 +472,7 @@ void Chip8::emulate_cycle()
 		break;
 	}
 
-	case 0x9000:
+	case 0x9:
 		// 0x9XY0
 		// Skips the next instruction if VX does not equal VY
 		if (V[X] != V[Y])
@@ -478,20 +485,20 @@ void Chip8::emulate_cycle()
 		}
 		break;
 
-	case 0xA000:
+	case 0xA:
 		// 0xANNN
 		// Sets I to the address NNN
 		I = NNN;
 		pc += 2;
 		break;
 
-	case 0xB000:
+	case 0xB:
 		// 0xBNNN
 		// Jumps to the address NNN plus V0
 		pc = NNN + V[0];
 		break;
 
-	case 0xC000:
+	case 0xC:
 	{
 		// 0xCXNN
 		// Sets VX to the result of a bitwise AND operation on a random number (Typically: 0 to 255) and NN
@@ -501,7 +508,7 @@ void Chip8::emulate_cycle()
 		break;
 	}
 
-	case 0xD000:
+	case 0xD:
 	{
 		// 0xDXYN
 		// Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels
@@ -554,10 +561,10 @@ void Chip8::emulate_cycle()
 		break;
 	}
 
-	case 0xE000:
-		switch (opcode & 0x000F)
+	case 0xE:
+		switch (N)
 		{
-		case 0x000E:
+		case 0xE:
 			// 0xEX9E
 			// Skips the next instruction if the key stored in VX is pressed (usually the next instruction is a jump to skip a code block)
 			if (keypad[V[X]] == 1)
@@ -570,7 +577,7 @@ void Chip8::emulate_cycle()
 			}
 			break;
 
-		case 0x0001:
+		case 0x1:
 			// 0xEXA1
 			// Skips the next instruction if the key stored in VX is not pressed (usually the next instruction is a jump to skip a code block)
 			if (keypad[V[X]] == 0)
@@ -585,10 +592,10 @@ void Chip8::emulate_cycle()
 		}
 		break;
 
-	case 0xF000:
-		switch (opcode & 0x000F)
+	case 0xF:
+		switch (N)
 		{
-		case 0x0007:
+		case 0x7:
 			// 0xFX07
 			// Sets VX to the value of the delay timer
 			// write the delay timer
@@ -597,24 +604,24 @@ void Chip8::emulate_cycle()
 			pc += 2;
 			break;
 
-		case 0x000A:
+		case 0xA:
 			// 0xFX0A
 			//  A key press is awaited, and then stored in VX (blocking operation, all instructions halted until next key event)
 			for (int i = 0; i < 16; i++)
 			{
 				if (keypad[i] == 1)
 				{
-					V[X] == keypad[counter];
+					V[X] = keypad[i];
 					pc += 2;
 					break;
 				}
 			}
 			break;
 
-		case 0x0005:
-			switch (opcode & 0x00F0)
+		case 0x5:
+			switch (NN)
 			{
-			case 0x0010:
+			case 0x15:
 				// 0xFX15
 				//  Sets the delay timer to VX
 				// get the current time at time of writing to the delay timer register
@@ -622,23 +629,27 @@ void Chip8::emulate_cycle()
 				pc += 2;
 				break;
 
-			case 0x0050:
+			case 0x55:
 				// 0xFX55
 				// Stores from V0 to VX (including VX) in memory, starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified
 				for (uint8_t i = 0; i <= X; i++)
 				{
 					printf("moving V[%0x] into memory[%04x + %d]\n", i, I, i);
 					memory[I + i] = V[i];
+					// memory[I] = V[i];
+					// I++;
 				}
 				pc += 2;
 				break;
 
-			case 0x0060:
+			case 0x65:
 				// 0xFX65
 				// Fills from V0 to VX (including VX) with values from memory, starting at address I. The offset from I is increased by 1 for each value read, but I itself is left unmodified
 				for (uint8_t i = 0; i <= X; i++)
 				{
 					V[i] = memory[I + i];
+					// V[i] = memory[I]; // legacy chip8 increments the I register itself
+					// I++;
 				}
 				pc += 2;
 				break;
@@ -646,21 +657,21 @@ void Chip8::emulate_cycle()
 
 			break;
 
-		case 0x0008:
+		case 0x8:
 			// 0xFX18
 			// Sets the sound timer to VX
 			sound_timer = V[X];
 			pc += 2;
 			break;
 
-		case 0x000E:
+		case 0xE:
 			// 0xFX1E
 			// Adds VX to I. VF is not affected
 			I += V[X];
 			pc += 2;
 			break;
 
-		case 0x0009:
+		case 0x9:
 			// 0xFX29
 			// Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 8x5 font
 			// each character 5 bytes -> 16 characters totalling 80 bytes
@@ -668,7 +679,7 @@ void Chip8::emulate_cycle()
 			pc += 2;
 			break;
 
-		case 0x0003:
+		case 0x3:
 			// 0xFX33
 			// Stores the binary-coded decimal representation of VX, with the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2
 			uint8_t temp = V[X];
@@ -687,21 +698,12 @@ void Chip8::emulate_cycle()
 	{
 		delay_timer--;
 	}
-	if(sound_timer > 0)
+	if (sound_timer > 0)
 	{
 		// TODO implement sound with SFML
 		sound_timer--;
-		printf("BEEP BEEP!!!\n");
+		play_sound();
 	}
-	// cycles += 1;
-	// if (cycles == CPU_CYCLES_PER_TIMER_CYCLE)
-	//{
-	//	cycles = 0;
-	//	if (delay_timer > 0)
-	//	{
-	//		delay_timer--;
-	//	}
-	// }
 }
 
 void Chip8::get_keys()
@@ -717,4 +719,10 @@ void Chip8::get_keys()
 			keypad[i] = 0;
 		}
 	}
+}
+
+void Chip8::play_sound()
+{
+	sound.play();
+	printf("TEST TEST TEST!!!\n");
 }
