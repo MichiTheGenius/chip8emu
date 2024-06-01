@@ -164,6 +164,13 @@ void Chip8::setup_font()
 	}
 }
 
+void Chip8::setup_sound()
+{
+	sound_buffer.loadFromFile("sound.wav");
+	sound.setBuffer(sound_buffer);
+	sound.setVolume(100);
+}
+
 void Chip8::init(char const *ROM)
 {
 	// read ROM file
@@ -195,9 +202,7 @@ void Chip8::init(char const *ROM)
 
 	setup_keybinds();
 	setup_font();
-	sound_buffer.loadFromFile("sound.wav");
-	sound.setBuffer(sound_buffer);
-	sound.setVolume(100);
+	setup_sound();
 
 	// program reading begins at memory position 512 (0x200)
 	for (int i = 0; i < lsize; i++)
@@ -700,9 +705,8 @@ void Chip8::emulate_cycle()
 	}
 	if (sound_timer > 0)
 	{
-		// TODO implement sound with SFML
 		sound_timer--;
-		play_sound();
+		sound.play();
 	}
 }
 
@@ -719,10 +723,4 @@ void Chip8::get_keys()
 			keypad[i] = 0;
 		}
 	}
-}
-
-void Chip8::play_sound()
-{
-	sound.play();
-	printf("TEST TEST TEST!!!\n");
 }

@@ -41,5 +41,5 @@ public:
     void get_keys();
     void setup_keybinds();
     void setup_font();
-    void play_sound();
+    void setup_sound();
 };
